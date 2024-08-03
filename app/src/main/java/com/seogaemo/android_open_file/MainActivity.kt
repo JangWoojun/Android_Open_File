@@ -1,22 +1,25 @@
 package com.seogaemo.android_open_file
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
-import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.seogaemo.android_open_file.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-
-    companion object {
-        const val REQUESTCODE = 200
-    }
+    private val openFileLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                val fileName = getFileNameFromUri(this, uri)
+                Toast.makeText(this@MainActivity, fileName, Toast.LENGTH_SHORT).show()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,21 +27,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.openFileButton.setOnClickListener {
-            val intent = Intent(Intent.ACTION_GET_CONTENT)
-            intent.type = "*/*"
-            startActivityForResult(intent, REQUESTCODE)
+            openFileLauncher.launch("*/*")
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUESTCODE && resultCode == Activity.RESULT_OK) {
-            data?.data?.let { uri ->
-                val fileName = getFileNameFromUri(this, uri)
-                Toast.makeText(this, fileName, Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
 
     private fun getFileNameFromUri(context: Context, uri: Uri): String? {
         var fileName: String? = null
